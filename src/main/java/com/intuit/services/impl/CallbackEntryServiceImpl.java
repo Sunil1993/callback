@@ -1,11 +1,9 @@
 package com.intuit.services.impl;
 
-import com.intuit.dao.CallbackEntryRepository;
-import com.intuit.dao.UserRepository;
-import com.intuit.dao.entities.CallbackEntry;
-import com.intuit.dao.entities.User;
+import com.intuit.dao.CallbackDao;
+import com.intuit.dao.UserDao;
+import com.intuit.dao.entities.Callback;
 import com.intuit.exceptions.ValidationException;
-import com.intuit.models.requests.CallbackEntryCreateReq;
 import com.intuit.services.CallbackEntryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,38 +15,30 @@ import org.springframework.stereotype.Service;
 public class CallbackEntryServiceImpl implements CallbackEntryService {
 
     @Autowired
-    CallbackEntryRepository callbackEntryRepository;
+    CallbackDao callbackDao;
 
     @Autowired
-    UserRepository userRepository;
+    UserDao userRepository;
 
     @Override
-    public int add(CallbackEntryCreateReq callbackEntryCreateReq) throws ValidationException {
-        validateCreateReq(callbackEntryCreateReq);
-        CallbackEntry callbackEntryObj = callbackEntryCreateReq.getCallbackEntry();
-        User user = userRepository.findOne(callbackEntryCreateReq.getUserId());
-        if(user == null) {
-            throw new ValidationException("Not a valid customer");
-        }
-
-        callbackEntryObj.setUser(user);
-        CallbackEntry entry = callbackEntryRepository.save(callbackEntryObj);
-        return entry.getId();
+    public String add(Callback callback) throws ValidationException {
+        validateCreateReq(callback);
+        return callbackDao.save(callback);
     }
 
     /**
      * Validation on the callback entry request
      * user_id and callback objects cannot be empty
-     * @param callbackEntryCreateReq
+     * @param callback
      * @throws ValidationException
      */
-    public void validateCreateReq(CallbackEntryCreateReq callbackEntryCreateReq) throws ValidationException {
-        if(callbackEntryCreateReq.getUserId() == null) {
+    public void validateCreateReq(Callback callback) throws ValidationException {
+        if(callback.getUserId() == null) {
             throw new ValidationException("Please provide valid customer id");
         }
 
-        if(callbackEntryCreateReq.getCallbackEntry() == null) {
-            throw new ValidationException("Please provide valid parameters");
-        }
+//        if(callback.getStatus() == null) {
+//            throw new ValidationException("Please provide valid parameters");
+//        }
     }
 }

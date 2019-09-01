@@ -1,5 +1,6 @@
 package com.intuit.controllers;
 
+import com.intuit.dao.entities.Callback;
 import com.intuit.exceptions.ValidationException;
 import com.intuit.models.requests.CallbackEntryCreateReq;
 import com.intuit.models.requests.UserCreateReq;
@@ -31,12 +32,12 @@ public class CallbackController {
     CallbackEntryService callbackEntryService;
 
     @PostMapping(produces = JSON_CONTENT_TYPE)
-    public ResponseEntity<DefaultResponse<Map<String, Object>>> create(@RequestBody CallbackEntryCreateReq callbackEntryCreateReq) {
+    public ResponseEntity<DefaultResponse<Map<String, Object>>> create(@RequestBody Callback callback) {
         DefaultResponse<Map<String, Object>> defaultResponse = new DefaultResponse<>();
 
         try {
             Map<String, Object> data = new HashMap<>();
-            Integer id = callbackEntryService.add(callbackEntryCreateReq);
+            String id = callbackEntryService.add(callback);
             data.put("id", id);
             defaultResponse.setData(data);
 

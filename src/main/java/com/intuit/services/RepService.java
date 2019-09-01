@@ -1,10 +1,10 @@
 package com.intuit.services;
 
-import com.intuit.models.requests.UserCreateReq;
+import com.intuit.dao.entities.Rep;
 
 /**
  * Created by Sunil on 9/1/19.
  */
 public interface RepService {
-    Integer createEntry(UserCreateReq userCreateReq);
+    String createEntry(Rep rep);
 }

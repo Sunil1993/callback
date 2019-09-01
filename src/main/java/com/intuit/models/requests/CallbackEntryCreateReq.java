@@ -1,6 +1,6 @@
 package com.intuit.models.requests;
 
-import com.intuit.dao.entities.CallbackEntry;
+import com.intuit.dao.entities.Callback;
 import lombok.Data;
 import lombok.NonNull;
 
@@ -14,5 +14,5 @@ public class CallbackEntryCreateReq {
     @NonNull
     Integer userId;
 
-    CallbackEntry callbackEntry;
+    Callback callback;
 }

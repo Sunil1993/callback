@@ -34,7 +34,7 @@ public class UserController {
 
         try {
             Map<String, Object> data = new HashMap<>();
-            Integer userId = userService.createUser(userCreateReq);
+            String userId = userService.createUser(userCreateReq);
             data.put("id", userId);
             defaultResponse.setData(data);
 

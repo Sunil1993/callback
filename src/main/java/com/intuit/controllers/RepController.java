@@ -1,5 +1,6 @@
 package com.intuit.controllers;
 
+import com.intuit.dao.entities.Rep;
 import com.intuit.models.requests.UserCreateReq;
 import com.intuit.models.responses.DefaultResponse;
 import com.intuit.services.RepService;
@@ -29,13 +30,13 @@ public class RepController {
     RepService repService;
 
     @PostMapping(produces = JSON_CONTENT_TYPE)
-    public ResponseEntity<DefaultResponse<Map<String, Object>>> create(@RequestBody UserCreateReq userCreateReq) {
+    public ResponseEntity<DefaultResponse<Map<String, Object>>> create(@RequestBody Rep rep) {
         DefaultResponse<Map<String, Object>> defaultResponse = new DefaultResponse<>();
 
         try {
             Map<String, Object> data = new HashMap<>();
-            Integer userId = repService.createEntry(userCreateReq);
-            data.put("id", userId);
+            String repId = repService.createEntry(rep);
+            data.put("id", repId);
             defaultResponse.setData(data);
 
             return new ResponseEntity<>(defaultResponse, HttpStatus.OK);
