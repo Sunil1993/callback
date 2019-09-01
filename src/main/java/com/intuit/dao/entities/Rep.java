@@ -14,10 +14,9 @@ import java.util.Date;
  * Created by Sunil on 9/1/19.
  */
 @Data
-@JsonIgnoreProperties(ignoreUnknown = true)
 @Entity
 @Table(name = "users")
-public class Rep{
+public class Rep extends AuditModel{
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
@@ -29,14 +28,6 @@ public class Rep{
     private String phoneNo;
 
     private String name;
-
-    @CreationTimestamp
-    @Column(name = "created_at")
-    private Date createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private Date updatedAt;
 
     private UserType type = UserType.REP;
 

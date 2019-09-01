@@ -10,15 +10,15 @@ import org.hibernate.annotations.UpdateTimestamp;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by Sunil on 9/1/19.
  */
 @Data
-@JsonIgnoreProperties(ignoreUnknown = true)
 @Entity
 @Table(name = "users")
-public class User {
+public class User extends AuditModel {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
@@ -31,15 +31,10 @@ public class User {
 
     private String name;
 
-    @CreationTimestamp
-    @Column(name = "created_at")
-    private Date createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private Date updatedAt;
-
     private UserType type = UserType.CUSTOMER;
+
+    @OneToMany(mappedBy = "user")
+    private List<CallbackEntry> callbackEntries;
 
     public static User getInstance(UserCreateReq userCreateReq) {
         User user = new User();
