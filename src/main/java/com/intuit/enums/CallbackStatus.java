@@ -6,6 +6,8 @@ package com.intuit.enums;
 public enum CallbackStatus {
     NOT_STARTED,
     WAITING,
-    CONFIRMED,
-    DONE
+    CONFIRMATION_MAIL,
+    NOTIFICATION_MAIL,
+    DONE,
+    CANCELLED
 }

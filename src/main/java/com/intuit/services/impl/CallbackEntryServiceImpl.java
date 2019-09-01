@@ -5,6 +5,7 @@ import com.intuit.dao.UserDao;
 import com.intuit.dao.entities.Callback;
 import com.intuit.exceptions.ValidationException;
 import com.intuit.services.CallbackEntryService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
 
     @Override
     public String add(Callback callback) throws ValidationException {
+
         validateCreateReq(callback);
         return callbackDao.save(callback);
     }
@@ -33,12 +35,12 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
      * @throws ValidationException
      */
     public void validateCreateReq(Callback callback) throws ValidationException {
-        if(callback.getUserId() == null) {
-            throw new ValidationException("Please provide valid customer id");
+        if(StringUtils.isEmpty(callback.getUserId())) {
+            throw new ValidationException("Missing customer id");
         }
 
-//        if(callback.getStatus() == null) {
-//            throw new ValidationException("Please provide valid parameters");
-//        }
+        if(StringUtils.isEmpty(callback.getTimeSlotId())) {
+            throw new ValidationException("Missing time slot");
+        }
     }
 }

@@ -9,6 +9,7 @@ import lombok.Data;
 @Data
 public class Callback extends AuditModel {
     String id;
-    private CallbackStatus status;
-    private User userId;
+    CallbackStatus status;
+    String userId;
+    String timeSlotId;
 }
