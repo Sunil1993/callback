@@ -32,7 +32,7 @@ public class CallbackController {
     CallbackEntryService callbackEntryService;
 
     @PostMapping(produces = JSON_CONTENT_TYPE)
-    public ResponseEntity<DefaultResponse<Map<String, Object>>> create(@RequestBody Callback callback) {
+    public ResponseEntity<DefaultResponse<Map<String, Object>>> create(@RequestBody CallbackEntryCreateReq callback) {
         DefaultResponse<Map<String, Object>> defaultResponse = new DefaultResponse<>();
 
         try {

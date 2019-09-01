@@ -26,4 +26,8 @@ public class ObjectMapperUtil {
         }
         return doc;
     }
+
+    public static ObjectMapper getObjectMapper(){
+        return objectMapper;
+    }
 }
