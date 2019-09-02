@@ -17,6 +17,8 @@ public class Callback extends AuditModel {
     String userId;
     String timeSlotId;
     Date slotDate;
+    Long startTime;
+    Long endTime;
 
     public static Callback getInstance(Object object){
         return ObjectMapperUtil.getObjectMapper().convertValue(object, Callback.class);

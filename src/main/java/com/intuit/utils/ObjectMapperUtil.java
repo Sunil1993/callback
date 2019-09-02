@@ -27,6 +27,11 @@ public class ObjectMapperUtil {
         return doc;
     }
 
+    public static <K> K parseDocumentModel(Document doc, Class<K> clazz) {
+        if (doc==null) return null;
+        return objectMapper.convertValue(doc, clazz);
+    }
+
     public static ObjectMapper getObjectMapper(){
         return objectMapper;
     }

@@ -31,4 +31,12 @@ public class CallbackDaoImpl implements CallbackDao {
         getCallbackColl().insertOne(doc);
         return String.valueOf(doc.get(MONGO_OBJECT_ID));
     }
+
+    @Override
+    public long countDocumentsInTimeSlot(Long startTime, Long endTime) {
+        Document query = new Document("startTime", new Document(Constants.MONGO_COMPARATORS.GREATER_THAN_OR_EQUAL, startTime))
+                .append("endTime", new Document(Constants.MONGO_COMPARATORS.LESS_THAN_OR_EQUAL, endTime));
+
+        return getCallbackColl().countDocuments(query);
+    }
 }

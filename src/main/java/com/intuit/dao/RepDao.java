@@ -8,4 +8,6 @@ import com.intuit.dao.entities.User;
  */
 public interface RepDao {
     String save(Rep rep);
+
+    long count();
 }

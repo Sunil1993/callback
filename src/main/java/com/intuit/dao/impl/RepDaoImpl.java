@@ -3,7 +3,6 @@ package com.intuit.dao.impl;
 import com.intuit.dao.MongoConnection;
 import com.intuit.dao.RepDao;
 import com.intuit.dao.entities.Rep;
-import com.intuit.dao.entities.User;
 import com.intuit.utils.Constants;
 import com.mongodb.client.MongoCollection;
 import org.bson.Document;
@@ -30,5 +29,10 @@ public class RepDaoImpl implements RepDao {
         Document doc = rep.getDocument();
         getUserColl().insertOne(doc);
         return String.valueOf(doc.get(Constants.MONGO_OBJECT_ID));
+    }
+
+    @Override
+    public long count() {
+        return getUserColl().countDocuments();
     }
 }

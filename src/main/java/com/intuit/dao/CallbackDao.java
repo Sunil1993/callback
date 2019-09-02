@@ -9,4 +9,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CallbackDao {
     String save(Callback callback);
+
+    long countDocumentsInTimeSlot(Long startTime, Long endTime);
 }
