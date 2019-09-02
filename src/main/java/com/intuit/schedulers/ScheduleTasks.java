@@ -25,7 +25,11 @@ public class ScheduleTasks {
     @Autowired
     CallbackEntryService callbackEntryService;
 
-    @Scheduled(cron = "0 0 2-22/3 * * *")
+    /**
+     * Run every 3 hours starting from 2
+     * 2,5,8,11,14,17,20,23
+     */
+    @Scheduled(cron = "0 0 2/3 * * *")
     public void scheduleTaskWithCronExpression() {
         long timeMillis = System.currentTimeMillis();
         log.info("Cron Task started :: Execution Time - {}", timeMillis);
@@ -43,14 +47,16 @@ public class ScheduleTasks {
 
     private ScheduleTimeSlot getScheduleTime(Calendar cal) {
         int hour = cal.get(Calendar.HOUR_OF_DAY);
-        cal.set(Calendar.HOUR_OF_DAY, hour + 1);
+        int startHour = (hour + 1) % 24;
+        int endHour = (hour + 4) % 24;
+        cal.set(Calendar.HOUR_OF_DAY, startHour);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
 
         ScheduleTimeSlot scheduleTimeSlot = new ScheduleTimeSlot();
         scheduleTimeSlot.setStartTime(cal.getTimeInMillis());
-        cal.set(Calendar.HOUR_OF_DAY, hour + 4);
+        cal.set(Calendar.HOUR_OF_DAY, endHour);
         scheduleTimeSlot.setEndTime(cal.getTimeInMillis());
 
         return scheduleTimeSlot;
