@@ -7,6 +7,7 @@ import com.intuit.models.ScheduleTimeSlot;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public class MailServiceImpl implements MailService {
     private JavaMailSender javaMailSender;
 
     @Override
+    @Async
     public void sendConfirmationMail(User user, Callback callback) {
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(user.getEmail());
@@ -32,6 +34,7 @@ public class MailServiceImpl implements MailService {
     }
 
     @Override
+    @Async
     public void sendNotificationMail(List<String> emails, ScheduleTimeSlot slot) {
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(emails.toArray(new String[emails.size()]));
@@ -43,6 +46,7 @@ public class MailServiceImpl implements MailService {
     }
 
     @Override
+    @Async
     public void sendWaitingNotification(User user, Callback callback) {
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(user.getEmail());
