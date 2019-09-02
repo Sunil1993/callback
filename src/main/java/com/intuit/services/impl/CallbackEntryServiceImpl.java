@@ -1,10 +1,10 @@
 package com.intuit.services.impl;
 
-import com.intuit.dao.CallbackDao;
-import com.intuit.dao.RepDao;
-import com.intuit.dao.TimeSlotDao;
+import com.intuit.dao.*;
 import com.intuit.dao.entities.Callback;
 import com.intuit.dao.entities.TimeSlot;
+import com.intuit.dao.entities.User;
+import com.intuit.enums.CallbackStatus;
 import com.intuit.exceptions.ValidationException;
 import com.intuit.models.requests.CallbackEntryCreateReq;
 import com.intuit.services.CallbackEntryService;
@@ -37,12 +37,18 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     @Autowired
     RepDao repDao;
 
+    @Autowired
+    MailService mailService;
+
+    @Autowired
+    UserDao userDao;
+
     @Override
     public String add(CallbackEntryCreateReq callbackReq) throws ValidationException {
         validateCreateReq(callbackReq);
         Callback instance = Callback.getInstance(callbackReq);
         String callbackId = callbackDao.save(instance);
-        confirmMail(instance);
+        confirmMail(callbackId);
         return callbackId;
     }
 
@@ -71,7 +77,8 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         }
     }
 
-    public void confirmMail(Callback callback) throws ValidationException {
+    public void confirmMail(String callbackId) throws ValidationException {
+        Callback callback = callbackDao.findOne(callbackId);
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
 
@@ -83,9 +90,22 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
 
         long allotedSlotsCount = callbackDao.countDocumentsInTimeSlot(startTimeSlot, endTimeSlot);
         long maxCallsForSlot = repDao.count() * REP_MAX_CALL_PER_HOUR * TIME_SLOT_DURATION;
+
+
+        User user = userDao.findOne(callback.getUserId());
+        Callback updateDoc = new Callback();
         if(allotedSlotsCount < maxCallsForSlot) {
-            System.out.println("call assigned");
+            mailService.sendConfirmationMail(user, callback);
+            updateDoc.setStatus(CallbackStatus.CONFIRMATION_MAIL);
+        } else {
+            mailService.sendWaitingNotification(user, callback);
+            updateDoc.setStatus(CallbackStatus.WAITING);
         }
+        update(callbackId, updateDoc);
+    }
+
+    public void update(String callbackId, Callback callback) throws ValidationException {
+        callbackDao.updateOne(callbackId, callback);
     }
 
     public Long generateTimeStamp(Calendar cal, Time time) {

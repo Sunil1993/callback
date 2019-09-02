@@ -34,7 +34,7 @@ public class TimeSlotDaoImpl implements TimeSlotDao {
         timeSlot.setCreatedAt(currentTimeMillis);
         timeSlot.setUpdatedAt(currentTimeMillis);
 
-        Document query = new Document("startTime", timeSlot.getStartTime()).append("endTime", timeSlot.getEndTime());
+        Document query = new Document("startTime", String.valueOf(timeSlot.getStartTime())).append("endTime", String.valueOf(timeSlot.getEndTime()));
         Document doc = timeSlot.getDocument();
         getTimeSlotColl().updateOne(query, new Document(SET_OPRTN, doc), new UpdateOptions().upsert(true));
     }

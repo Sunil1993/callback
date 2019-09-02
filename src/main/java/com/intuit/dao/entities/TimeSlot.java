@@ -20,10 +20,10 @@ public class TimeSlot extends AuditModel {
     private Time endTime;
 
     public static TimeSlot getInstance(Document doc) {
-        TimeSlot dam = ObjectMapperUtil.parseDocumentModel(doc, TimeSlot.class);
+        TimeSlot timeSlot = ObjectMapperUtil.parseDocumentModel(doc, TimeSlot.class);
         if ( doc.containsKey(MONGO_OBJECT_ID) ){
-            dam.setId(String.valueOf(doc.get(MONGO_OBJECT_ID)));
+            timeSlot.setId(String.valueOf(doc.get(MONGO_OBJECT_ID)));
         }
-        return dam;
+        return timeSlot;
     }
 }
