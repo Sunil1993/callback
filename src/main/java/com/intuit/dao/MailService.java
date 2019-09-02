@@ -2,7 +2,7 @@ package com.intuit.dao;
 
 import com.intuit.dao.entities.Callback;
 import com.intuit.dao.entities.User;
-import com.intuit.models.ScheduleTimeSlot;
+import com.intuit.models.TimeSlotInTimestamp;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ import java.util.List;
 public interface MailService {
     void sendConfirmationMail(User user, Callback callback);
 
-    void sendNotificationMail(List<String> emails, ScheduleTimeSlot scheduleTimeSlot);
+    void sendNotificationMail(List<String> emails, TimeSlotInTimestamp scheduleTimeSlot);
 
     void sendWaitingNotification(User user, Callback callback);
 }

@@ -3,7 +3,7 @@ package com.intuit.dao.impl;
 import com.intuit.dao.MailService;
 import com.intuit.dao.entities.Callback;
 import com.intuit.dao.entities.User;
-import com.intuit.models.ScheduleTimeSlot;
+import com.intuit.models.TimeSlotInTimestamp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -35,7 +35,7 @@ public class MailServiceImpl implements MailService {
 
     @Override
     @Async
-    public void sendNotificationMail(List<String> emails, ScheduleTimeSlot slot) {
+    public void sendNotificationMail(List<String> emails, TimeSlotInTimestamp slot) {
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(emails.toArray(new String[emails.size()]));
 

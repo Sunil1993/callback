@@ -16,12 +16,12 @@ import static com.intuit.utils.Constants.MONGO_OBJECT_ID;
 @Log4j2
 public class MongoQueryHelper {
 
-    public static ObjectId getObjectId(String idValue) throws ValidationException {
+    public static ObjectId getObjectId(String idValue) throws IllegalArgumentException {
         ObjectId objectId;
         try {
             return new ObjectId(idValue);
         } catch (Exception e) {
-            throw new ValidationException("INVALID value for id : " + idValue);
+            throw new IllegalArgumentException("INVALID value for id : " + idValue);
         }
     }
 

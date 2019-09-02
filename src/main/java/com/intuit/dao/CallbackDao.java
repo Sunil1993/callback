@@ -3,7 +3,7 @@ package com.intuit.dao;
 import com.intuit.dao.entities.Callback;
 import com.intuit.enums.CallbackStatus;
 import com.intuit.exceptions.ValidationException;
-import com.intuit.models.ScheduleTimeSlot;
+import com.intuit.models.TimeSlotInTimestamp;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,7 +21,7 @@ public interface CallbackDao {
 
     void updateOne(String id, Callback callback) throws ValidationException;
 
-    List<Callback> userIdsForNotification(ScheduleTimeSlot scheduleTimeSlot);
+    List<Callback> userIdsForNotification(TimeSlotInTimestamp scheduleTimeSlot);
 
     long countDocumentsInTimeSlotWithStatus(Long startTime, Long endTime, CallbackStatus status);
 
@@ -30,4 +30,6 @@ public interface CallbackDao {
     Callback getOneWaitingCustomer(Long startTime, Long endTime, CallbackStatus status);
 
     void deleteOne(String callbackId) throws ValidationException;
+
+    Callback assignRep(TimeSlotInTimestamp timeSlot, String repId);
 }

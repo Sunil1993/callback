@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ScheduleTimeSlot {
+public class TimeSlotInTimestamp {
     Long startTime;
     Long endTime;
 }
