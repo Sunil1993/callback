@@ -85,9 +85,11 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         }
 
         // Check for waiting customer and send mail
-        Callback waitingCustomerCallback = callbackDao.getOneWaitingCustomer(timeSlot.getStartTime(), timeSlot.getEndTime(), CallbackStatus.WAITING);
-        if(waitingCustomerCallback != null) {
-            confirmSlotForWaitingCustomer(waitingCustomerCallback);
+        synchronized(this) {
+            Callback waitingCustomerCallback = callbackDao.getOneWaitingCustomer(timeSlot.getStartTime(), timeSlot.getEndTime(), CallbackStatus.WAITING);
+            if (waitingCustomerCallback != null) {
+                confirmSlotForWaitingCustomer(waitingCustomerCallback);
+            }
         }
     }
 
