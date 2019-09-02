@@ -37,7 +37,7 @@ public class RepServiceImpl implements RepService {
     }
 
     @Override
-    public RepAssignCallResponse assignCall(String repId, TimeSlotInTimestamp timeSlot) throws ValidationException {
+    public RepAssignCallResponse assignCall(String repId, TimeSlotInTimestamp timeSlot) throws NoSuchElementException, ValidationException {
         Callback callback = callbackEntryService.getCustomerInTimeSlot(timeSlot, repId);
         if(callback == null) {
             throw new NoSuchElementException("No customer found for the given time range");
