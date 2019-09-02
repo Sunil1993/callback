@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intuit.dao.TimeSlotDao;
 import com.intuit.dao.entities.TimeSlot;
+import com.intuit.enums.TimeSlotEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.InputStream;
+import java.sql.Time;
 import java.util.List;
 
 /**

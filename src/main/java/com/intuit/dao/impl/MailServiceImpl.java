@@ -3,10 +3,13 @@ package com.intuit.dao.impl;
 import com.intuit.dao.MailService;
 import com.intuit.dao.entities.Callback;
 import com.intuit.dao.entities.User;
+import com.intuit.models.ScheduleTimeSlot;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * Created by Sunil on 9/2/19.
@@ -29,12 +32,12 @@ public class MailServiceImpl implements MailService {
     }
 
     @Override
-    public void sendNotificationMail(User user, Callback callback) {
+    public void sendNotificationMail(List<String> emails, ScheduleTimeSlot slot) {
         SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setTo(user.getEmail());
+        msg.setTo(emails.toArray(new String[emails.size()]));
 
         msg.setSubject("Intuit call notification");
-        msg.setText("Happy to inform that a call has been scheduled between " + callback.getStartTime() + " - " + callback.getEndTime());
+        msg.setText("Happy to inform that a call has been scheduled between " + slot.getStartTime() + " - " + slot.getEndTime());
 
         javaMailSender.send(msg);
     }

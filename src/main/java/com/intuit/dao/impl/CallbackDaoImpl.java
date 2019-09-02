@@ -2,15 +2,22 @@ package com.intuit.dao.impl;
 
 import com.intuit.dao.CallbackDao;
 import com.intuit.dao.entities.Callback;
+import com.intuit.enums.CallbackStatus;
 import com.intuit.exceptions.ValidationException;
+import com.intuit.models.ScheduleTimeSlot;
 import com.intuit.utils.Constants;
 import com.intuit.dao.MongoConnection;
 import com.intuit.utils.MongoQueryHelper;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Projections;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.intuit.utils.Constants.CALLBACK_COLLECTION;
 import static com.intuit.utils.Constants.MONGO_OBJECT_ID;
@@ -68,5 +75,31 @@ public class CallbackDaoImpl implements CallbackDao {
         Document doc = callback.getDocument();
 
         getCallbackColl().updateOne(query, new Document(Constants.MONGO_OPERATIONS.SET_OPRTN, doc));
+    }
+
+    @Override
+    public List<Callback> userIdsForNotification(ScheduleTimeSlot scheduleTimeSlot) {
+        Document query = new Document("startTime", new Document(Constants.MONGO_COMPARATORS.GREATER_THAN_OR_EQUAL, scheduleTimeSlot.getStartTime()))
+                .append("endTime", new Document(Constants.MONGO_COMPARATORS.LESS_THAN_OR_EQUAL, scheduleTimeSlot.getEndTime()))
+                .append("status", CallbackStatus.CONFIRMATION_MAIL.name());
+
+        Bson projection = Projections.include("userId", "status");
+        FindIterable<Document> documents = getCallbackColl().find(query).projection(projection);
+
+        List<Callback> callbackList = new ArrayList<>();
+        for(Document document : documents) {
+            callbackList.add(Callback.getInstance(document));
+        }
+
+        return callbackList;
+    }
+
+    @Override
+    public void updateMultipleCallbackStatus(List<String> callbackIds, CallbackStatus status) {
+        Document query = MongoQueryHelper.getFilterByMultipleIdsCondition(callbackIds);
+        Document doc = new Document(Constants.MONGO_OPERATIONS.SET_OPRTN, new Document("status", status.name()));
+
+        getCallbackColl().updateMany(query, doc);
+
     }
 }

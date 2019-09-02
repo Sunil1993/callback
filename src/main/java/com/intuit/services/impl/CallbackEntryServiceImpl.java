@@ -6,6 +6,7 @@ import com.intuit.dao.entities.TimeSlot;
 import com.intuit.dao.entities.User;
 import com.intuit.enums.CallbackStatus;
 import com.intuit.exceptions.ValidationException;
+import com.intuit.models.ScheduleTimeSlot;
 import com.intuit.models.requests.CallbackEntryCreateReq;
 import com.intuit.services.CallbackEntryService;
 import org.apache.commons.lang3.StringUtils;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 import static com.intuit.utils.Constants.REP_MAX_CALL_PER_HOUR;
 import static com.intuit.utils.Constants.TIME_SLOT_DURATION;
@@ -52,13 +54,43 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         return callbackId;
     }
 
+    @Override
+    public void confirmMail(String callbackId) throws ValidationException {
+        Callback callback = callbackDao.findOne(callbackId);
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
+
+        Long startTimeSlot = generateTimeStamp(cal, timeSlot.getStartTime());
+        Long endTimeSlot = generateTimeStamp(cal, timeSlot.getEndTime());
+
+        long allotedSlotsCount = callbackDao.countDocumentsInTimeSlot(startTimeSlot, endTimeSlot);
+        long maxCallsForSlot = repDao.count() * REP_MAX_CALL_PER_HOUR * TIME_SLOT_DURATION;
+
+
+        User user = userDao.findOne(callback.getUserId());
+        Callback updateDoc = new Callback();
+        if(allotedSlotsCount < maxCallsForSlot) {
+            mailService.sendConfirmationMail(user, callback);
+            updateDoc.setStatus(CallbackStatus.CONFIRMATION_MAIL);
+        } else {
+            mailService.sendWaitingNotification(user, callback);
+            updateDoc.setStatus(CallbackStatus.WAITING);
+        }
+        update(callbackId, updateDoc);
+    }
+
+    @Override
+    public void update(String callbackId, Callback callback) throws ValidationException {
+        callbackDao.updateOne(callbackId, callback);
+    }
+
     /**
      * Validation on the callback entry request
      * user_id and callback objects cannot be empty
      * @param callback
      * @throws ValidationException
      */
-    public void validateCreateReq(CallbackEntryCreateReq callback) throws ValidationException {
+    private void validateCreateReq(CallbackEntryCreateReq callback) throws ValidationException {
         List<String> errors = new ArrayList<>();
         if(StringUtils.isEmpty(callback.getUserId())) {
             errors.add("userId");
@@ -77,35 +109,17 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         }
     }
 
-    public void confirmMail(String callbackId) throws ValidationException {
-        Callback callback = callbackDao.findOne(callbackId);
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
+    @Override
+    public void sendNotificationMailForNextSlot(ScheduleTimeSlot scheduleTimeSlot) {
+        List<Callback> callbackList = callbackDao.userIdsForNotification(scheduleTimeSlot);
+        if(callbackList.size() > 0) {
+            List<String> userIds = callbackList.stream().map(Callback::getUserId).collect(Collectors.toList());
+            List<String> callbackIds = callbackList.stream().map(Callback::getId).collect(Collectors.toList());
 
-        Long startTimeSlot = generateTimeStamp(cal, timeSlot.getStartTime());
-        Long endTimeSlot = generateTimeStamp(cal, timeSlot.getEndTime());
-
-        System.out.println("scheduledStartTime: " + callback.getStartTime() + " scheduledEndTime: " + callback.getEndTime());
-        System.out.println("startTimeSlot: " + startTimeSlot + " endTimeSlot: " + endTimeSlot);
-
-        long allotedSlotsCount = callbackDao.countDocumentsInTimeSlot(startTimeSlot, endTimeSlot);
-        long maxCallsForSlot = repDao.count() * REP_MAX_CALL_PER_HOUR * TIME_SLOT_DURATION;
-
-
-        User user = userDao.findOne(callback.getUserId());
-        Callback updateDoc = new Callback();
-        if(allotedSlotsCount < maxCallsForSlot) {
-            mailService.sendConfirmationMail(user, callback);
-            updateDoc.setStatus(CallbackStatus.CONFIRMATION_MAIL);
-        } else {
-            mailService.sendWaitingNotification(user, callback);
-            updateDoc.setStatus(CallbackStatus.WAITING);
+            callbackDao.updateMultipleCallbackStatus(callbackIds, CallbackStatus.NOTIFICATION_MAIL);
+            List<String> emailIds = userDao.findEmailIdsForUsers(userIds);
+            mailService.sendNotificationMail(emailIds, scheduleTimeSlot);
         }
-        update(callbackId, updateDoc);
-    }
-
-    public void update(String callbackId, Callback callback) throws ValidationException {
-        callbackDao.updateOne(callbackId, callback);
     }
 
     public Long generateTimeStamp(Calendar cal, Time time) {

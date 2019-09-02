@@ -8,9 +8,14 @@ import com.intuit.utils.Constants;
 import com.intuit.utils.MongoQueryHelper;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Projections;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.intuit.utils.Constants.CALLBACK_COLLECTION;
 import static com.intuit.utils.Constants.MONGO_OBJECT_ID;
@@ -50,5 +55,20 @@ public class UserDaoImpl implements UserDao {
         }
 
         return null;
+    }
+
+    @Override
+    public List<String> findEmailIdsForUsers(List<String> userIds) {
+        Document filterByMultipleIdsCondition = MongoQueryHelper.getFilterByMultipleIdsCondition(userIds);
+        Bson projections = Projections.include("email");
+
+        FindIterable<Document> documents = getUserColl().find(filterByMultipleIdsCondition).projection(projections);
+
+        List<String> emails = new ArrayList<>();
+        for(Document document : documents) {
+            emails.add(String.valueOf(document.get("email")));
+        }
+
+        return emails;
     }
 }
