@@ -1,33 +1,21 @@
 package com.intuit.dao.entities;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.intuit.utils.ObjectMapperUtil;
 import lombok.Data;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import javax.persistence.*;
+import org.bson.Document;
 import java.io.Serializable;
-import java.util.Date;
 
 /**
  * Created by Sunil on 9/1/19.
  */
-@MappedSuperclass
-@EntityListeners(AuditingEntityListener.class)
-@JsonIgnoreProperties(
-        value = {"createdAt", "updatedAt"},
-        allowGetters = true
-)
 @Data
 public abstract class AuditModel implements Serializable {
-    @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "created_at", nullable = false, updatable = false)
-    @CreatedDate
-    private Date createdAt;
+    Long createdAt;
+    Long updatedAt;
 
-    @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "updated_at", nullable = false)
-    @LastModifiedDate
-    private Date updatedAt;
+    @JsonIgnore
+    public Document getDocument(){
+        return ObjectMapperUtil.parseObjectToDocumentRemoveNull(this);
+    }
 }

@@ -1,6 +1,6 @@
 package com.intuit.services.impl;
 
-import com.intuit.dao.UserRepository;
+import com.intuit.dao.UserDao;
 import com.intuit.dao.entities.User;
 import com.intuit.models.requests.UserCreateReq;
 import com.intuit.services.UserService;
@@ -17,12 +17,11 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl implements UserService {
 
     @Autowired
-    UserRepository userRepository;
+    UserDao userDao;
 
     @Override
-    public Integer createUser(UserCreateReq userCreateReq) {
+    public String createUser(UserCreateReq userCreateReq) {
         User userObj = User.getInstance(userCreateReq);
-        User entry = userRepository.save(userObj);
-        return entry.getId();
+        return userDao.save(userObj);
     }
 }
