@@ -67,16 +67,34 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         Callback callback = callbackDao.findOne(callbackId);
         callbackDao.deleteOne(callbackId);
 
+        // Check for waiting list only if confirmed customer cancels
+        if(callback.getStatus() != CallbackStatus.CONFIRMATION_MAIL) {
+            return;
+        }
+
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
         Long startTimeSlot = generateTimeStamp(cal, timeSlot.getStartTime());
         Long endTimeSlot = generateTimeStamp(cal, timeSlot.getEndTime());
 
-
-        Callback waitingCustomer = callbackDao.getOneWaitingCustomer(startTimeSlot, endTimeSlot, CallbackStatus.WAITING);
-        if(waitingCustomer != null) {
-            confirmMail(waitingCustomer.getId());
+        // Check for waiting customer and send mail
+        Callback waitingCustomerCallback = callbackDao.getOneWaitingCustomer(startTimeSlot, endTimeSlot, CallbackStatus.WAITING);
+        if(waitingCustomerCallback != null) {
+            confirmSlotForWaitingCustomer(waitingCustomerCallback);
         }
+    }
+
+    /**
+     * Confirm call for waiting customer
+     * @param callback
+     * @throws ValidationException
+     */
+    public void confirmSlotForWaitingCustomer(Callback callback) throws ValidationException {
+        User user = userDao.findOne(callback.getUserId());
+        Callback updateDoc = new Callback();
+        mailService.sendConfirmationMail(user, callback);
+        updateDoc.setStatus(CallbackStatus.CONFIRMATION_MAIL);
+        update(callback.getId(), updateDoc);
     }
 
     @Override

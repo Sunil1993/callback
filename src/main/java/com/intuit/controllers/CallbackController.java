@@ -77,7 +77,7 @@ public class CallbackController {
         }
     }
 
-    @PatchMapping(value = "/cancel/{callbackId}", produces = JSON_CONTENT_TYPE)
+    @DeleteMapping(value = "/cancel/{callbackId}", produces = JSON_CONTENT_TYPE)
     public ResponseEntity<DefaultResponse<Map<String, Object>>> cancelCall(
             @PathVariable String callbackId) {
         DefaultResponse<Map<String, Object>> defaultResponse = new DefaultResponse<>();
