@@ -30,24 +30,6 @@ public class RepController {
     @Autowired
     RepService repService;
 
-    @PostMapping(produces = JSON_CONTENT_TYPE)
-    public ResponseEntity<DefaultResponse<Map<String, Object>>> create(@RequestBody Rep rep) {
-        DefaultResponse<Map<String, Object>> defaultResponse = new DefaultResponse<>();
-
-        try {
-            Map<String, Object> data = new HashMap<>();
-            String repId = repService.createEntry(rep);
-            data.put("id", repId);
-            defaultResponse.setData(data);
-
-            return new ResponseEntity<>(defaultResponse, HttpStatus.OK);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            defaultResponse.addError(e.getMessage());
-            return new ResponseEntity<>(defaultResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
     @PostMapping(value = "/{repId}/assignCall", produces = JSON_CONTENT_TYPE)
     public ResponseEntity<DefaultResponse<RepAssignCallResponse>> assignCall(@PathVariable String repId,
                                                               @RequestBody TimeSlotInTimestamp timeSlot) {
@@ -90,6 +72,23 @@ public class RepController {
             defaultResponse.addError(e.getMessage());
             return new ResponseEntity<>(defaultResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
 
+    @PostMapping(produces = JSON_CONTENT_TYPE)
+    public ResponseEntity<DefaultResponse<Map<String, Object>>> create(@RequestBody Rep rep) {
+        DefaultResponse<Map<String, Object>> defaultResponse = new DefaultResponse<>();
+
+        try {
+            Map<String, Object> data = new HashMap<>();
+            String repId = repService.createEntry(rep);
+            data.put("id", repId);
+            defaultResponse.setData(data);
+
+            return new ResponseEntity<>(defaultResponse, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            defaultResponse.addError(e.getMessage());
+            return new ResponseEntity<>(defaultResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
