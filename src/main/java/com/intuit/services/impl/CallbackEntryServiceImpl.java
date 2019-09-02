@@ -9,6 +9,7 @@ import com.intuit.exceptions.ValidationException;
 import com.intuit.models.ScheduleTimeSlot;
 import com.intuit.services.CallbackEntryService;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import static com.intuit.utils.Constants.HOUR_DURATION;
 import static com.intuit.utils.Constants.REP_MAX_CALL_PER_HOUR;
 import static com.intuit.utils.Constants.TIME_SLOT_DURATION;
 
@@ -54,6 +56,11 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
 
     @Override
     public void reschedule(String callbackId, Callback callback) throws ValidationException {
+        Callback storedCallback = callbackDao.findOne(callbackId);
+        if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL && (storedCallback.getStartTime() - System.currentTimeMillis()) < HOUR_DURATION) {
+            throw new IllegalStateException("Cannot re-schedule call before an hour");
+        }
+
         if(callback.getStartTime() == null || callback.getStartTime() == null) {
             throw new ValidationException("Missing time slots");
         }
@@ -65,6 +72,11 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     @Override
     public void cancel(String callbackId) throws ValidationException {
         Callback callback = callbackDao.findOne(callbackId);
+        ScheduleTimeSlot timeSlot = getTimeSlots(callback);
+        if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL && (callback.getStartTime() - System.currentTimeMillis()) < HOUR_DURATION) {
+            throw new IllegalStateException("Cannot cancel call before an hour");
+        }
+
         callbackDao.deleteOne(callbackId);
 
         // Check for waiting list only if confirmed customer cancels
@@ -72,13 +84,8 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
             return;
         }
 
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
-        Long startTimeSlot = generateTimeStamp(cal, timeSlot.getStartTime());
-        Long endTimeSlot = generateTimeStamp(cal, timeSlot.getEndTime());
-
         // Check for waiting customer and send mail
-        Callback waitingCustomerCallback = callbackDao.getOneWaitingCustomer(startTimeSlot, endTimeSlot, CallbackStatus.WAITING);
+        Callback waitingCustomerCallback = callbackDao.getOneWaitingCustomer(timeSlot.getStartTime(), timeSlot.getEndTime(), CallbackStatus.WAITING);
         if(waitingCustomerCallback != null) {
             confirmSlotForWaitingCustomer(waitingCustomerCallback);
         }
@@ -173,5 +180,14 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         cal.set(Calendar.SECOND, timeCal.get(Calendar.SECOND));
         cal.set(Calendar.MILLISECOND, 0);
         return cal.getTimeInMillis();
+    }
+
+    public ScheduleTimeSlot getTimeSlots(Callback callback) throws ValidationException {
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
+        ScheduleTimeSlot scheduleTimeSlot = new ScheduleTimeSlot();
+        scheduleTimeSlot.setStartTime(generateTimeStamp(cal, timeSlot.getStartTime()));
+        scheduleTimeSlot.setEndTime(generateTimeStamp(cal, timeSlot.getEndTime()));
+        return scheduleTimeSlot;
     }
 }

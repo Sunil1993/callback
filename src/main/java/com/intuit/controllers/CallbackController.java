@@ -66,6 +66,10 @@ public class CallbackController {
             data.put("message", "Successfully re-scheduled");
             defaultResponse.setData(data);
             return new ResponseEntity<>(defaultResponse, HttpStatus.OK);
+        } catch (IllegalStateException e) {
+            log.error(e.getMessage(), e);
+            defaultResponse.addError(e.getMessage());
+            return new ResponseEntity<>(defaultResponse, HttpStatus.UNPROCESSABLE_ENTITY);
         } catch (ValidationException e) {
             log.error(e.getMessage(), e);
             defaultResponse.addError(e.getMessage());
@@ -88,6 +92,10 @@ public class CallbackController {
             data.put("message", "cancelled");
             defaultResponse.setData(data);
             return new ResponseEntity<>(defaultResponse, HttpStatus.OK);
+        } catch (IllegalStateException e) {
+            log.error(e.getMessage(), e);
+            defaultResponse.addError(e.getMessage());
+            return new ResponseEntity<>(defaultResponse, HttpStatus.UNPROCESSABLE_ENTITY);
         } catch (ValidationException e) {
             log.error(e.getMessage(), e);
             defaultResponse.addError(e.getMessage());

@@ -23,6 +23,8 @@ public class Constants {
     public static final Long REP_MAX_CALL_PER_HOUR = 10L;
     public static final Integer TIME_SLOT_DURATION = 3;
 
+    public static final Long HOUR_DURATION = 1L * 60 * 60 * 1000;
+
     public static final String CREATED_AT = "createdAt";
     public static final String UPDDATED_AT = "updatedAt";
 
