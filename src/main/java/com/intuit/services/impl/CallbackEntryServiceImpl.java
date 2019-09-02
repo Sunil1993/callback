@@ -7,14 +7,12 @@ import com.intuit.dao.entities.User;
 import com.intuit.enums.CallbackStatus;
 import com.intuit.exceptions.ValidationException;
 import com.intuit.models.ScheduleTimeSlot;
-import com.intuit.models.requests.CallbackEntryCreateReq;
 import com.intuit.services.CallbackEntryService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.sql.Time;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -46,12 +44,39 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     UserDao userDao;
 
     @Override
-    public String add(CallbackEntryCreateReq callbackReq) throws ValidationException {
+    public String add(Callback callbackReq) throws ValidationException {
         validateCreateReq(callbackReq);
         Callback instance = Callback.getInstance(callbackReq);
         String callbackId = callbackDao.save(instance);
         confirmMail(callbackId);
         return callbackId;
+    }
+
+    @Override
+    public void reschedule(String callbackId, Callback callback) throws ValidationException {
+        if(callback.getStartTime() == null || callback.getStartTime() == null) {
+            throw new ValidationException("Missing time slots");
+        }
+        callback.setStatus(CallbackStatus.NOT_STARTED);
+        callbackDao.updateOne(callbackId, callback);
+        confirmMail(callbackId);
+    }
+
+    @Override
+    public void cancel(String callbackId) throws ValidationException {
+        Callback callback = callbackDao.findOne(callbackId);
+        callbackDao.deleteOne(callbackId);
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
+        Long startTimeSlot = generateTimeStamp(cal, timeSlot.getStartTime());
+        Long endTimeSlot = generateTimeStamp(cal, timeSlot.getEndTime());
+
+
+        Callback waitingCustomer = callbackDao.getOneWaitingCustomer(startTimeSlot, endTimeSlot, CallbackStatus.WAITING);
+        if(waitingCustomer != null) {
+            confirmMail(waitingCustomer.getId());
+        }
     }
 
     @Override
@@ -65,7 +90,6 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
 
         long allotedSlotsCount = callbackDao.countDocumentsInTimeSlot(startTimeSlot, endTimeSlot);
         long maxCallsForSlot = repDao.count() * REP_MAX_CALL_PER_HOUR * TIME_SLOT_DURATION;
-
 
         User user = userDao.findOne(callback.getUserId());
         Callback updateDoc = new Callback();
@@ -90,7 +114,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
      * @param callback
      * @throws ValidationException
      */
-    private void validateCreateReq(CallbackEntryCreateReq callback) throws ValidationException {
+    private void validateCreateReq(Callback callback) throws ValidationException {
         List<String> errors = new ArrayList<>();
         if(StringUtils.isEmpty(callback.getUserId())) {
             errors.add("userId");

@@ -49,6 +49,7 @@ public class ScheduleTasks {
         int hour = cal.get(Calendar.HOUR_OF_DAY);
         int startHour = (hour + 1) % 24;
         int endHour = (hour + 4) % 24;
+
         cal.set(Calendar.HOUR_OF_DAY, startHour);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);

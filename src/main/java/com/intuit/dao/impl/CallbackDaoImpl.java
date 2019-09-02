@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.intuit.utils.Constants.CALLBACK_COLLECTION;
+import static com.intuit.utils.Constants.CREATED_AT;
 import static com.intuit.utils.Constants.MONGO_OBJECT_ID;
 
 /**
@@ -95,11 +96,42 @@ public class CallbackDaoImpl implements CallbackDao {
     }
 
     @Override
+    public long countDocumentsInTimeSlotWithStatus(Long startTime, Long endTime, CallbackStatus status) {
+        Document query = new Document("startTime", new Document(Constants.MONGO_COMPARATORS.GREATER_THAN_OR_EQUAL, startTime))
+                .append("endTime", new Document(Constants.MONGO_COMPARATORS.LESS_THAN_OR_EQUAL, endTime))
+                .append("status", status.name());
+
+        return getCallbackColl().countDocuments(query);
+    }
+
+    @Override
     public void updateMultipleCallbackStatus(List<String> callbackIds, CallbackStatus status) {
         Document query = MongoQueryHelper.getFilterByMultipleIdsCondition(callbackIds);
         Document doc = new Document(Constants.MONGO_OPERATIONS.SET_OPRTN, new Document("status", status.name()));
 
         getCallbackColl().updateMany(query, doc);
 
+    }
+
+    @Override
+    public Callback getOneWaitingCustomer(Long startTime, Long endTime, CallbackStatus status) {
+        Document query = new Document("startTime", new Document(Constants.MONGO_COMPARATORS.GREATER_THAN_OR_EQUAL, startTime))
+                .append("endTime", new Document(Constants.MONGO_COMPARATORS.LESS_THAN_OR_EQUAL, endTime))
+                .append("status", status.name());
+
+        FindIterable<Document> documents = getCallbackColl().find(query).sort(new Document(CREATED_AT, 1)).limit(1);
+
+        if(documents != null && documents.first() != null) {
+            return Callback.getInstance(documents.first());
+        }
+        return null;
+    }
+
+    @Override
+    public void deleteOne(String callbackId) throws ValidationException {
+        ObjectId objectId = MongoQueryHelper.getObjectId(callbackId);
+        Document deleteQuery = new Document(MONGO_OBJECT_ID, objectId);
+
+        getCallbackColl().deleteOne(deleteQuery);
     }
 }

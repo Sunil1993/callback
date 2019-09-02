@@ -23,5 +23,11 @@ public interface CallbackDao {
 
     List<Callback> userIdsForNotification(ScheduleTimeSlot scheduleTimeSlot);
 
+    long countDocumentsInTimeSlotWithStatus(Long startTime, Long endTime, CallbackStatus status);
+
     void updateMultipleCallbackStatus(List<String> callbackIds, CallbackStatus status);
+
+    Callback getOneWaitingCustomer(Long startTime, Long endTime, CallbackStatus status);
+
+    void deleteOne(String callbackId) throws ValidationException;
 }
