@@ -4,13 +4,15 @@ import com.intuit.dao.CallbackDao;
 import com.intuit.dao.entities.Callback;
 import com.intuit.enums.CallbackStatus;
 import com.intuit.exceptions.ValidationException;
-import com.intuit.models.ScheduleTimeSlot;
+import com.intuit.models.TimeSlotInTimestamp;
 import com.intuit.utils.Constants;
 import com.intuit.dao.MongoConnection;
 import com.intuit.utils.MongoQueryHelper;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.ReturnDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -79,7 +81,7 @@ public class CallbackDaoImpl implements CallbackDao {
     }
 
     @Override
-    public List<Callback> userIdsForNotification(ScheduleTimeSlot scheduleTimeSlot) {
+    public List<Callback> userIdsForNotification(TimeSlotInTimestamp scheduleTimeSlot) {
         Document query = new Document("startTime", new Document(Constants.MONGO_COMPARATORS.GREATER_THAN_OR_EQUAL, scheduleTimeSlot.getStartTime()))
                 .append("endTime", new Document(Constants.MONGO_COMPARATORS.LESS_THAN_OR_EQUAL, scheduleTimeSlot.getEndTime()))
                 .append("status", CallbackStatus.CONFIRMATION_MAIL.name());
@@ -133,5 +135,26 @@ public class CallbackDaoImpl implements CallbackDao {
         Document deleteQuery = new Document(MONGO_OBJECT_ID, objectId);
 
         getCallbackColl().deleteOne(deleteQuery);
+    }
+
+    @Override
+    public Callback assignRep(TimeSlotInTimestamp timeSlot, String repId) {
+        Document query = new Document("startTime", new Document(Constants.MONGO_COMPARATORS.GREATER_THAN_OR_EQUAL, timeSlot.getStartTime()))
+                .append("endTime", new Document(Constants.MONGO_COMPARATORS.LESS_THAN_OR_EQUAL, timeSlot.getEndTime()))
+                .append("status", CallbackStatus.CONFIRMATION_MAIL.name());
+
+        Callback callback = new Callback();
+        callback.setRepId(repId);
+        Document updateDoc = callback.getDocument();
+
+        Document callbackDoc = getCallbackColl().findOneAndUpdate(query, new Document(Constants.MONGO_OPERATIONS.SET_OPRTN, updateDoc),
+                new FindOneAndUpdateOptions().sort(new Document(CREATED_AT, 1))
+                        .returnDocument(ReturnDocument.AFTER));
+
+        if(callbackDoc != null) {
+            return Callback.getInstance(callbackDoc);
+        }
+
+        return null;
     }
 }

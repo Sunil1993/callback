@@ -10,6 +10,7 @@ import java.util.List;
  */
 public interface UserDao {
     String save(User user);
+
     User findOne(String id) throws ValidationException;
 
     List<String> findEmailIdsForUsers(List<String> userIds);
