@@ -47,21 +47,20 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     @Override
     public String add(Callback callbackReq) throws ValidationException {
         validateCreateReq(callbackReq);
-        Callback instance = Callback.getInstance(callbackReq);
-        String callbackId = callbackDao.save(instance);
+        String callbackId = callbackDao.save(callbackReq);
         confirmMail(callbackId);
         return callbackId;
     }
 
     @Override
-    public void reschedule(String callbackId, Callback callback) throws ValidationException {
+    public void reschedule(String callbackId, Callback callback) throws IllegalStateException, ValidationException {
         Callback storedCallback = callbackDao.findOne(callbackId);
-        if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL && (storedCallback.getStartTime() - System.currentTimeMillis()) < HOUR_DURATION) {
-            throw new IllegalStateException("Cannot re-schedule call before an hour");
-        }
-
         if(callback.getStartTime() == null || callback.getStartTime() == null) {
             throw new ValidationException("Missing time slots");
+        }
+
+        if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL && (storedCallback.getStartTime() - System.currentTimeMillis()) < HOUR_DURATION) {
+            throw new IllegalStateException("Cannot re-schedule call before an hour");
         }
         callback.setStatus(CallbackStatus.NOT_STARTED);
         callbackDao.updateOne(callbackId, callback);
