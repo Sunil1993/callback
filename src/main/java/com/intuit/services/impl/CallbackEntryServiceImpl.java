@@ -114,6 +114,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     public void confirmMail(String callbackId) throws ValidationException, PersistentException {
         Callback callback = callbackDao.findOne(callbackId);
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTimeInMillis(callback.getStartTime());
         TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
 
         Long startTimeSlot = generateTimeStamp(cal, timeSlot.getStartTime());
