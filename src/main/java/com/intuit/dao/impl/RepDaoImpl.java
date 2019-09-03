@@ -3,7 +3,9 @@ package com.intuit.dao.impl;
 import com.intuit.dao.MongoConnection;
 import com.intuit.dao.RepDao;
 import com.intuit.dao.entities.Rep;
+import com.intuit.exceptions.PersistentException;
 import com.intuit.utils.Constants;
+import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 import org.bson.Document;
 import org.springframework.stereotype.Service;
@@ -21,18 +23,26 @@ public class RepDaoImpl implements RepDao {
     }
 
     @Override
-    public String save(Rep rep) {
+    public String save(Rep rep) throws PersistentException {
         long currentTimeMillis = System.currentTimeMillis();
         rep.setCreatedAt(currentTimeMillis);
         rep.setUpdatedAt(currentTimeMillis);
 
         Document doc = rep.getDocument();
-        getUserColl().insertOne(doc);
-        return String.valueOf(doc.get(Constants.MONGO_OBJECT_ID));
+        try {
+            getUserColl().insertOne(doc);
+            return String.valueOf(doc.get(Constants.MONGO_OBJECT_ID));
+        } catch (MongoException e) {
+            throw new PersistentException(e.getMessage());
+        }
     }
 
     @Override
-    public long count() {
-        return getUserColl().countDocuments();
+    public long count() throws PersistentException {
+        try {
+            return getUserColl().countDocuments();
+        } catch (MongoException e) {
+            throw new PersistentException(e.getMessage());
+        }
     }
 }

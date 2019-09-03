@@ -3,16 +3,19 @@ package com.intuit.dao.impl;
 import com.intuit.dao.CallbackDao;
 import com.intuit.dao.entities.Callback;
 import com.intuit.enums.CallbackStatus;
+import com.intuit.exceptions.PersistentException;
 import com.intuit.exceptions.ValidationException;
 import com.intuit.models.TimeSlotInTimestamp;
 import com.intuit.utils.Constants;
 import com.intuit.dao.MongoConnection;
 import com.intuit.utils.MongoQueryHelper;
+import com.mongodb.MongoException;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReturnDocument;
+import lombok.extern.log4j.Log4j2;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -29,6 +32,7 @@ import static com.intuit.utils.Constants.MONGO_OBJECT_ID;
  * Created by Sunil on 9/1/19.
  */
 @Service
+@Log4j2
 public class CallbackDaoImpl implements CallbackDao {
 
     private MongoCollection<Document> getCallbackColl() {
@@ -36,62 +40,82 @@ public class CallbackDaoImpl implements CallbackDao {
     }
 
     @Override
-    public String save(Callback callback) {
+    public String save(Callback callback) throws PersistentException {
         long currentTimeMillis = System.currentTimeMillis();
         callback.setCreatedAt(currentTimeMillis);
         callback.setUpdatedAt(currentTimeMillis);
 
         Document doc = callback.getDocument();
-        getCallbackColl().insertOne(doc);
-        return String.valueOf(doc.get(MONGO_OBJECT_ID));
+        try {
+            getCallbackColl().insertOne(doc);
+            return String.valueOf(doc.get(MONGO_OBJECT_ID));
+        } catch (MongoException e) {
+            log.error("Failed persist data for callback due to" + e.getMessage());
+            throw new PersistentException(e.getMessage());
+        }
     }
 
     @Override
-    public long countDocumentsInTimeSlot(Long startTime, Long endTime) {
+    public long countDocumentsInTimeSlot(Long startTime, Long endTime) throws PersistentException {
         Document query = new Document("startTime", new Document(Constants.MONGO_COMPARATORS.GREATER_THAN_OR_EQUAL, startTime))
                 .append("endTime", new Document(Constants.MONGO_COMPARATORS.LESS_THAN_OR_EQUAL, endTime));
 
-        return getCallbackColl().countDocuments(query);
+        try {
+            return getCallbackColl().countDocuments(query);
+        } catch (MongoException e) {
+            throw new PersistentException(e.getMessage());
+        }
     }
 
     @Override
-    public Callback findOne(String id) throws ValidationException {
+    public Callback findOne(String id) throws ValidationException, PersistentException {
         ObjectId objectId = MongoQueryHelper.getObjectId(id);
 
         Document document = new Document(MONGO_OBJECT_ID, objectId);
 
-        FindIterable<Document> documents = getCallbackColl().find(document);
+        try {
+            FindIterable<Document> documents = getCallbackColl().find(document);
 
-        if(documents != null && documents.first() != null) {
-            return Callback.getInstance(documents.first());
+            if (documents != null && documents.first() != null) {
+                return Callback.getInstance(documents.first());
+            }
+        } catch (MongoException e) {
+            throw new PersistentException(e.getMessage());
         }
 
         return null;
     }
 
     @Override
-    public void updateOne(String id, Callback callback) throws ValidationException {
+    public void updateOne(String id, Callback callback) throws ValidationException, PersistentException {
         ObjectId objectId = MongoQueryHelper.getObjectId(id);
         Document query = new Document(MONGO_OBJECT_ID, objectId);
 
         callback.setUpdatedAt(System.currentTimeMillis());
         Document doc = callback.getDocument();
 
-        getCallbackColl().updateOne(query, new Document(Constants.MONGO_OPERATIONS.SET_OPRTN, doc));
+        try {
+            getCallbackColl().updateOne(query, new Document(Constants.MONGO_OPERATIONS.SET_OPRTN, doc));
+        } catch (MongoException e) {
+            throw new PersistentException(e.getMessage());
+        }
     }
 
     @Override
-    public List<Callback> userIdsForNotification(TimeSlotInTimestamp scheduleTimeSlot) {
+    public List<Callback> userIdsForNotification(TimeSlotInTimestamp scheduleTimeSlot) throws PersistentException {
         Document query = new Document("startTime", new Document(Constants.MONGO_COMPARATORS.GREATER_THAN_OR_EQUAL, scheduleTimeSlot.getStartTime()))
                 .append("endTime", new Document(Constants.MONGO_COMPARATORS.LESS_THAN_OR_EQUAL, scheduleTimeSlot.getEndTime()))
                 .append("status", CallbackStatus.CONFIRMATION_MAIL.name());
 
         Bson projection = Projections.include("userId", "status");
-        FindIterable<Document> documents = getCallbackColl().find(query).projection(projection);
-
         List<Callback> callbackList = new ArrayList<>();
-        for(Document document : documents) {
-            callbackList.add(Callback.getInstance(document));
+        try {
+            FindIterable<Document> documents = getCallbackColl().find(query).projection(projection);
+            for (Document document : documents) {
+                callbackList.add(Callback.getInstance(document));
+            }
+        } catch (MongoException e) {
+            throw new PersistentException(e.getMessage());
         }
 
         return callbackList;
@@ -107,38 +131,48 @@ public class CallbackDaoImpl implements CallbackDao {
     }
 
     @Override
-    public void updateMultipleCallbackStatus(List<String> callbackIds, CallbackStatus status) {
+    public void updateMultipleCallbackStatus(List<String> callbackIds, CallbackStatus status) throws PersistentException {
         Document query = MongoQueryHelper.getFilterByMultipleIdsCondition(callbackIds);
         Document doc = new Document(Constants.MONGO_OPERATIONS.SET_OPRTN, new Document("status", status.name()));
 
-        getCallbackColl().updateMany(query, doc);
-
+        try {
+            getCallbackColl().updateMany(query, doc);
+        } catch (MongoException e) {
+            throw new PersistentException(e.getMessage());
+        }
     }
 
     @Override
-    public Callback getOneWaitingCustomer(Long startTime, Long endTime, CallbackStatus status) {
+    public Callback getOneWaitingCustomer(Long startTime, Long endTime, CallbackStatus status) throws PersistentException {
         Document query = new Document("startTime", new Document(Constants.MONGO_COMPARATORS.GREATER_THAN_OR_EQUAL, startTime))
                 .append("endTime", new Document(Constants.MONGO_COMPARATORS.LESS_THAN_OR_EQUAL, endTime))
                 .append("status", status.name());
 
-        FindIterable<Document> documents = getCallbackColl().find(query).sort(new Document(CREATED_AT, 1)).limit(1);
-
-        if(documents != null && documents.first() != null) {
-            return Callback.getInstance(documents.first());
+        try {
+            FindIterable<Document> documents = getCallbackColl().find(query).sort(new Document(CREATED_AT, 1)).limit(1);
+            if (documents != null && documents.first() != null) {
+                return Callback.getInstance(documents.first());
+            }
+        } catch (MongoException e) {
+            throw new PersistentException(e.getMessage());
         }
         return null;
     }
 
     @Override
-    public void deleteOne(String callbackId) throws ValidationException {
+    public void deleteOne(String callbackId) throws ValidationException, PersistentException {
         ObjectId objectId = MongoQueryHelper.getObjectId(callbackId);
         Document deleteQuery = new Document(MONGO_OBJECT_ID, objectId);
 
-        getCallbackColl().deleteOne(deleteQuery);
+        try {
+            getCallbackColl().deleteOne(deleteQuery);
+        } catch (MongoException e) {
+            throw new PersistentException(e.getMessage());
+        }
     }
 
     @Override
-    public Callback assignRep(TimeSlotInTimestamp timeSlot, String repId) {
+    public Callback assignRep(TimeSlotInTimestamp timeSlot, String repId) throws PersistentException {
         Document query = new Document("startTime", new Document(Constants.MONGO_COMPARATORS.GREATER_THAN_OR_EQUAL, timeSlot.getStartTime()))
                 .append("endTime", new Document(Constants.MONGO_COMPARATORS.LESS_THAN_OR_EQUAL, timeSlot.getEndTime()))
                 .append("status", CallbackStatus.CONFIRMATION_MAIL.name());
@@ -147,12 +181,16 @@ public class CallbackDaoImpl implements CallbackDao {
         callback.setRepId(repId);
         Document updateDoc = callback.getDocument();
 
-        Document callbackDoc = getCallbackColl().findOneAndUpdate(query, new Document(Constants.MONGO_OPERATIONS.SET_OPRTN, updateDoc),
-                new FindOneAndUpdateOptions().sort(new Document(CREATED_AT, 1))
-                        .returnDocument(ReturnDocument.AFTER));
+        try {
+            Document callbackDoc = getCallbackColl().findOneAndUpdate(query, new Document(Constants.MONGO_OPERATIONS.SET_OPRTN, updateDoc),
+                    new FindOneAndUpdateOptions().sort(new Document(CREATED_AT, 1))
+                            .returnDocument(ReturnDocument.AFTER));
 
-        if(callbackDoc != null) {
-            return Callback.getInstance(callbackDoc);
+            if (callbackDoc != null) {
+                return Callback.getInstance(callbackDoc);
+            }
+        } catch (MongoException e) {
+            throw new PersistentException(e.getMessage());
         }
 
         return null;

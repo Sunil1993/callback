@@ -2,6 +2,7 @@ package com.intuit.services.impl;
 
 import com.intuit.dao.UserDao;
 import com.intuit.dao.entities.User;
+import com.intuit.exceptions.PersistentException;
 import com.intuit.models.requests.UserCreateReq;
 import com.intuit.services.UserService;
 import lombok.extern.log4j.Log4j2;
@@ -20,7 +21,7 @@ public class UserServiceImpl implements UserService {
     UserDao userDao;
 
     @Override
-    public String createUser(UserCreateReq userCreateReq) {
+    public String createUser(UserCreateReq userCreateReq) throws PersistentException {
         User userObj = User.getInstance(userCreateReq);
         return userDao.save(userObj);
     }

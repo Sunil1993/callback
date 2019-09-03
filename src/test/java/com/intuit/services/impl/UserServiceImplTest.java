@@ -38,7 +38,7 @@ public class UserServiceImplTest {
     UserServiceImpl userService;
 
     @Test
-    public void createUserSuccess() {
+    public void createUserSuccess() throws Exception {
         User instance = User.getInstance(userCreateReq);
         when(userDao.save(instance)).thenReturn("user_id_123");
         String userId = userService.createUser(userCreateReq);

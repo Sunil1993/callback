@@ -5,6 +5,7 @@ import com.intuit.dao.entities.Callback;
 import com.intuit.dao.entities.TimeSlot;
 import com.intuit.dao.entities.User;
 import com.intuit.enums.CallbackStatus;
+import com.intuit.exceptions.PersistentException;
 import com.intuit.exceptions.ValidationException;
 import com.intuit.models.TimeSlotInTimestamp;
 import com.intuit.services.CallbackEntryService;
@@ -45,7 +46,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     UserDao userDao;
 
     @Override
-    public String add(Callback callbackReq) throws ValidationException {
+    public String add(Callback callbackReq) throws ValidationException, PersistentException {
         validateCreateReq(callbackReq);
         String callbackId = callbackDao.save(callbackReq);
         confirmMail(callbackId);
@@ -53,7 +54,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     }
 
     @Override
-    public void reschedule(String callbackId, Callback callback) throws IllegalStateException, ValidationException {
+    public void reschedule(String callbackId, Callback callback) throws IllegalStateException, ValidationException, PersistentException {
         Callback storedCallback = callbackDao.findOne(callbackId);
         if(callback.getStartTime() == null || callback.getStartTime() == null) {
             throw new ValidationException("Missing time slots");
@@ -68,12 +69,12 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     }
 
     @Override
-    public Callback getCustomerInTimeSlot(TimeSlotInTimestamp timeSlot, String repId) {
+    public Callback getCustomerInTimeSlot(TimeSlotInTimestamp timeSlot, String repId) throws PersistentException {
         return callbackDao.assignRep(timeSlot, repId);
     }
 
     @Override
-    public void cancel(String callbackId) throws ValidationException {
+    public void cancel(String callbackId) throws ValidationException, PersistentException {
         Callback callback = callbackDao.findOne(callbackId);
         TimeSlotInTimestamp timeSlot = getTimeSlots(callback);
         if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL && (callback.getStartTime() - System.currentTimeMillis()) < HOUR_DURATION) {
@@ -101,7 +102,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
      * @param callback
      * @throws ValidationException
      */
-    public void confirmSlotForWaitingCustomer(Callback callback) throws ValidationException {
+    public void confirmSlotForWaitingCustomer(Callback callback) throws ValidationException, PersistentException {
         User user = userDao.findOne(callback.getUserId());
         Callback updateDoc = new Callback();
         mailService.sendConfirmationMail(user, callback);
@@ -110,7 +111,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     }
 
     @Override
-    public void confirmMail(String callbackId) throws ValidationException {
+    public void confirmMail(String callbackId) throws ValidationException, PersistentException {
         Callback callback = callbackDao.findOne(callbackId);
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
@@ -134,7 +135,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     }
 
     @Override
-    public void update(String callbackId, Callback callback) throws ValidationException {
+    public void update(String callbackId, Callback callback) throws ValidationException, PersistentException {
         callbackDao.updateOne(callbackId, callback);
     }
 
@@ -164,7 +165,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     }
 
     @Override
-    public void sendNotificationMailForNextSlot(TimeSlotInTimestamp scheduleTimeSlot) {
+    public void sendNotificationMailForNextSlot(TimeSlotInTimestamp scheduleTimeSlot) throws PersistentException {
         List<Callback> callbackList = callbackDao.userIdsForNotification(scheduleTimeSlot);
         if(callbackList.size() > 0) {
             List<String> userIds = callbackList.stream().map(Callback::getUserId).collect(Collectors.toList());
