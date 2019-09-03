@@ -105,7 +105,7 @@ public class CallbackEntryServiceImplTest {
         callbackEntryService.reschedule(callbackId, callbackInstance);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = ValidationException.class)
     public void rescheduleWithException() throws Exception {
         Callback callbackInstance = getCallbackInstance();
         callbackInstance.setStatus(CallbackStatus.CONFIRMATION_MAIL);
@@ -142,7 +142,7 @@ public class CallbackEntryServiceImplTest {
 
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = ValidationException.class)
     public void cancelWithinHour() throws Exception {
         Callback callbackInstance = getCallbackInstance();
         callbackInstance.setStatus(CallbackStatus.CONFIRMATION_MAIL);
