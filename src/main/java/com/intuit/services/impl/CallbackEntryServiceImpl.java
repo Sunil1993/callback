@@ -63,9 +63,15 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL && (storedCallback.getStartTime() - System.currentTimeMillis()) < HOUR_DURATION) {
             throw new IllegalStateException("Cannot re-schedule call before an hour");
         }
+
         callback.setStatus(CallbackStatus.NOT_STARTED);
         callbackDao.updateOne(callbackId, callback);
         confirmMail(callbackId);
+
+        // If confirmed call is getting re-scheduled allocate that slot to another user
+        if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL) {
+            sendMailForNextWaitingCustomer(callback.getTimeSlotId());
+        }
     }
 
     @Override
@@ -76,7 +82,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     @Override
     public void cancel(String callbackId) throws ValidationException, PersistentException {
         Callback callback = callbackDao.findOne(callbackId);
-        TimeSlotInTimestamp timeSlot = getTimeSlots(callback);
+
         if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL && (callback.getStartTime() - System.currentTimeMillis()) < HOUR_DURATION) {
             throw new IllegalStateException("Cannot cancel call before an hour");
         }
@@ -88,13 +94,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
             return;
         }
 
-        // Check for waiting customer and send mail
-        synchronized(this) {
-            Callback waitingCustomerCallback = callbackDao.getOneWaitingCustomer(timeSlot.getStartTime(), timeSlot.getEndTime(), CallbackStatus.WAITING);
-            if (waitingCustomerCallback != null) {
-                confirmSlotForWaitingCustomer(waitingCustomerCallback);
-            }
-        }
+        sendMailForNextWaitingCustomer(callback.getTimeSlotId());
     }
 
     /**
@@ -177,6 +177,22 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         }
     }
 
+    /**
+     * Check slot for next waiting customer
+     * @param timeSlotId
+     * @throws ValidationException
+     * @throws PersistentException
+     */
+    public void sendMailForNextWaitingCustomer(String timeSlotId) throws ValidationException, PersistentException {
+        TimeSlotInTimestamp timeSlot = getTimeSlots(timeSlotId);
+
+        // Check for waiting customer and send mail
+        Callback waitingCustomerCallback = callbackDao.getOneWaitingCustomer(timeSlot.getStartTime(), timeSlot.getEndTime(), CallbackStatus.WAITING);
+        if (waitingCustomerCallback != null) {
+            confirmSlotForWaitingCustomer(waitingCustomerCallback);
+        }
+    }
+
     public Long generateTimeStamp(Calendar cal, Time time) {
         Calendar timeCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         timeCal.setTime(time);
@@ -188,9 +204,9 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         return cal.getTimeInMillis();
     }
 
-    public TimeSlotInTimestamp getTimeSlots(Callback callback) throws ValidationException {
+    public TimeSlotInTimestamp getTimeSlots(String timeSlotId) throws ValidationException {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
+        TimeSlot timeSlot = timeSlotDao.getTime(timeSlotId);
         TimeSlotInTimestamp scheduleTimeSlot = new TimeSlotInTimestamp();
         scheduleTimeSlot.setStartTime(generateTimeStamp(cal, timeSlot.getStartTime()));
         scheduleTimeSlot.setEndTime(generateTimeStamp(cal, timeSlot.getEndTime()));
