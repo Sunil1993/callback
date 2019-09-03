@@ -5,6 +5,7 @@ import com.intuit.dao.entities.Callback;
 import com.intuit.dao.entities.TimeSlot;
 import com.intuit.dao.entities.User;
 import com.intuit.enums.CallbackStatus;
+import com.intuit.exceptions.PersistentException;
 import com.intuit.exceptions.ValidationException;
 import com.intuit.models.TimeSlotInTimestamp;
 import com.intuit.services.CallbackEntryService;
@@ -45,7 +46,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     UserDao userDao;
 
     @Override
-    public String add(Callback callbackReq) throws ValidationException {
+    public String add(Callback callbackReq) throws ValidationException, PersistentException {
         validateCreateReq(callbackReq);
         String callbackId = callbackDao.save(callbackReq);
         confirmMail(callbackId);
@@ -53,7 +54,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     }
 
     @Override
-    public void reschedule(String callbackId, Callback callback) throws IllegalStateException, ValidationException {
+    public void reschedule(String callbackId, Callback callback) throws IllegalStateException, ValidationException, PersistentException {
         Callback storedCallback = callbackDao.findOne(callbackId);
         if(callback.getStartTime() == null || callback.getStartTime() == null) {
             throw new ValidationException("Missing time slots");
@@ -62,20 +63,26 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL && (storedCallback.getStartTime() - System.currentTimeMillis()) < HOUR_DURATION) {
             throw new IllegalStateException("Cannot re-schedule call before an hour");
         }
+
         callback.setStatus(CallbackStatus.NOT_STARTED);
         callbackDao.updateOne(callbackId, callback);
         confirmMail(callbackId);
+
+        // If confirmed call is getting re-scheduled allocate that slot to another user
+        if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL) {
+            sendMailForNextWaitingCustomer(callback.getTimeSlotId());
+        }
     }
 
     @Override
-    public Callback getCustomerInTimeSlot(TimeSlotInTimestamp timeSlot, String repId) {
+    public Callback getCustomerInTimeSlot(TimeSlotInTimestamp timeSlot, String repId) throws PersistentException {
         return callbackDao.assignRep(timeSlot, repId);
     }
 
     @Override
-    public void cancel(String callbackId) throws ValidationException {
+    public void cancel(String callbackId) throws ValidationException, PersistentException {
         Callback callback = callbackDao.findOne(callbackId);
-        TimeSlotInTimestamp timeSlot = getTimeSlots(callback);
+
         if(callback.getStatus() == CallbackStatus.CONFIRMATION_MAIL && (callback.getStartTime() - System.currentTimeMillis()) < HOUR_DURATION) {
             throw new IllegalStateException("Cannot cancel call before an hour");
         }
@@ -87,13 +94,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
             return;
         }
 
-        // Check for waiting customer and send mail
-        synchronized(this) {
-            Callback waitingCustomerCallback = callbackDao.getOneWaitingCustomer(timeSlot.getStartTime(), timeSlot.getEndTime(), CallbackStatus.WAITING);
-            if (waitingCustomerCallback != null) {
-                confirmSlotForWaitingCustomer(waitingCustomerCallback);
-            }
-        }
+        sendMailForNextWaitingCustomer(callback.getTimeSlotId());
     }
 
     /**
@@ -101,7 +102,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
      * @param callback
      * @throws ValidationException
      */
-    public void confirmSlotForWaitingCustomer(Callback callback) throws ValidationException {
+    public void confirmSlotForWaitingCustomer(Callback callback) throws ValidationException, PersistentException {
         User user = userDao.findOne(callback.getUserId());
         Callback updateDoc = new Callback();
         mailService.sendConfirmationMail(user, callback);
@@ -110,7 +111,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     }
 
     @Override
-    public void confirmMail(String callbackId) throws ValidationException {
+    public void confirmMail(String callbackId) throws ValidationException, PersistentException {
         Callback callback = callbackDao.findOne(callbackId);
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
@@ -134,7 +135,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     }
 
     @Override
-    public void update(String callbackId, Callback callback) throws ValidationException {
+    public void update(String callbackId, Callback callback) throws ValidationException, PersistentException {
         callbackDao.updateOne(callbackId, callback);
     }
 
@@ -164,7 +165,7 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
     }
 
     @Override
-    public void sendNotificationMailForNextSlot(TimeSlotInTimestamp scheduleTimeSlot) {
+    public void sendNotificationMailForNextSlot(TimeSlotInTimestamp scheduleTimeSlot) throws PersistentException {
         List<Callback> callbackList = callbackDao.userIdsForNotification(scheduleTimeSlot);
         if(callbackList.size() > 0) {
             List<String> userIds = callbackList.stream().map(Callback::getUserId).collect(Collectors.toList());
@@ -173,6 +174,22 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
             callbackDao.updateMultipleCallbackStatus(callbackIds, CallbackStatus.NOTIFICATION_MAIL);
             List<String> emailIds = userDao.findEmailIdsForUsers(userIds);
             mailService.sendNotificationMail(emailIds, scheduleTimeSlot);
+        }
+    }
+
+    /**
+     * Check slot for next waiting customer
+     * @param timeSlotId
+     * @throws ValidationException
+     * @throws PersistentException
+     */
+    public void sendMailForNextWaitingCustomer(String timeSlotId) throws ValidationException, PersistentException {
+        TimeSlotInTimestamp timeSlot = getTimeSlots(timeSlotId);
+
+        // Check for waiting customer and send mail
+        Callback waitingCustomerCallback = callbackDao.getOneWaitingCustomer(timeSlot.getStartTime(), timeSlot.getEndTime(), CallbackStatus.WAITING);
+        if (waitingCustomerCallback != null) {
+            confirmSlotForWaitingCustomer(waitingCustomerCallback);
         }
     }
 
@@ -187,9 +204,9 @@ public class CallbackEntryServiceImpl implements CallbackEntryService {
         return cal.getTimeInMillis();
     }
 
-    public TimeSlotInTimestamp getTimeSlots(Callback callback) throws ValidationException {
+    public TimeSlotInTimestamp getTimeSlots(String timeSlotId) throws ValidationException {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        TimeSlot timeSlot = timeSlotDao.getTime(callback.getTimeSlotId());
+        TimeSlot timeSlot = timeSlotDao.getTime(timeSlotId);
         TimeSlotInTimestamp scheduleTimeSlot = new TimeSlotInTimestamp();
         scheduleTimeSlot.setStartTime(generateTimeStamp(cal, timeSlot.getStartTime()));
         scheduleTimeSlot.setEndTime(generateTimeStamp(cal, timeSlot.getEndTime()));

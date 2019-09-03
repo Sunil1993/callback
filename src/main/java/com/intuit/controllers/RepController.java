@@ -1,6 +1,8 @@
 package com.intuit.controllers;
 
 import com.intuit.dao.entities.Rep;
+import com.intuit.enums.ErrorCodes;
+import com.intuit.exceptions.PersistentException;
 import com.intuit.exceptions.ValidationException;
 import com.intuit.models.TimeSlotInTimestamp;
 import com.intuit.models.requests.RepCompleteCallReq;
@@ -44,6 +46,10 @@ public class RepController {
             log.error(e.getMessage(), e);
             defaultResponse.addError(e.getMessage());
             return new ResponseEntity<>(defaultResponse, HttpStatus.BAD_REQUEST);
+        } catch (PersistentException e) {
+            log.error(e.getMessage(), e);
+            defaultResponse.addError(ErrorCodes.DEFAULT_MESSAGE.getErrMsg());
+            return new ResponseEntity<>(defaultResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             defaultResponse.addError(e.getMessage());
@@ -57,7 +63,6 @@ public class RepController {
         DefaultResponse<Map<String, Object>> defaultResponse = new DefaultResponse<>();
 
         try {
-            Map<String, Object> data = new HashMap<>();
             repService.completeCall(repId, repCompleteCallReq.getCallbackId());
             Map<String, Object> result = new HashMap<>();
             result.put("message", "Success");
@@ -67,6 +72,10 @@ public class RepController {
             log.error(e.getMessage(), e);
             defaultResponse.addError(e.getMessage());
             return new ResponseEntity<>(defaultResponse, HttpStatus.BAD_REQUEST);
+        } catch (PersistentException e) {
+            log.error(e.getMessage(), e);
+            defaultResponse.addError(ErrorCodes.DEFAULT_MESSAGE.getErrMsg());
+            return new ResponseEntity<>(defaultResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             defaultResponse.addError(e.getMessage());
@@ -85,6 +94,10 @@ public class RepController {
             defaultResponse.setData(data);
 
             return new ResponseEntity<>(defaultResponse, HttpStatus.OK);
+        } catch (PersistentException e) {
+            log.error(e.getMessage(), e);
+            defaultResponse.addError(ErrorCodes.DEFAULT_MESSAGE.getErrMsg());
+            return new ResponseEntity<>(defaultResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             defaultResponse.addError(e.getMessage());

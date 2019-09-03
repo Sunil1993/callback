@@ -1,5 +1,6 @@
 package com.intuit.schedulers;
 
+import com.intuit.exceptions.PersistentException;
 import com.intuit.models.TimeSlotInTimestamp;
 import com.intuit.services.CallbackEntryService;
 import lombok.extern.log4j.Log4j2;
@@ -31,7 +32,12 @@ public class ScheduleTasks {
         cal.setTimeInMillis(timeMillis);
         TimeSlotInTimestamp scheduleTime = getScheduleTime(cal);
 
-        callbackEntryService.sendNotificationMailForNextSlot(scheduleTime);
+        try {
+            callbackEntryService.sendNotificationMailForNextSlot
+                    (scheduleTime);
+        } catch (PersistentException e) {
+            log.error("Failed to notify customer", e);
+        }
     }
 
 //    @Scheduled(cron = "0 * * * * ?")
